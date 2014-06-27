@@ -45,8 +45,10 @@ def main():
     dt = read_dt(args.dynadeck)
 
     # SETUP RES_SIM VARIABLES
+    var_dict = FILL_ME_IN
 
     # SAVE RES_SIM.MAT
+    save_res_sim_mat(args.ressim, var_dict)
 
     if not os.path.exists(args.ressim):
         sys.exit('ERROR: %s not successfully created' % args.ressim)
@@ -95,6 +97,10 @@ def read_dt(dynadeck):
             if r.match(line):
                 readNextNonCommentLine = True
 
+
+def save_res_sim_mat(resname, var_dict):
+    import scipy.io as sio
+    sio.savemat(resname, var_dict)
 
 if __name__ == "__main__":
     main()
