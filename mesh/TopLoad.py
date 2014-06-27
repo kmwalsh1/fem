@@ -48,7 +48,6 @@ __license__ = "CC BY-NC-SA 3.0"
 def main():
     import sys
     import numpy as n
-    from bc import SortNodeIDs, extractPlane
     import fem_mesh
 
     if sys.version < '2.7':
@@ -85,11 +84,11 @@ def main():
 
     # there are 6 faces in these models; we need to (1) find the top face and
     # (2) apply the appropriate loads
-    [snic, axes] = SortNodeIDs(nodeIDcoords)
+    [snic, axes] = fem_mesh.SortNodeIDs(nodeIDcoords)
 
     # extract spatially-sorted node IDs on a the top z plane
     plane = (2, axes[2].max())
-    planeNodeIDs = extractPlane(snic, axes, plane)
+    planeNodeIDs = fem_mesh.extractPlane(snic, axes, plane)
 
     # write out nodes on the top z plane with corresponding load values
     # (direction of motion, nodal displacement (accel, vel, etc), temporal load
