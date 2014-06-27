@@ -104,16 +104,16 @@ def save_res_sim_mat(resname, var_dict):
         print('Error saving %s.' % resname)
 
 def load_sort_nodes(nodedyn):
-    import numpy as n
+    import numpy import loadtxt
     import fem_mesh
     # load in all of the node data, excluding '*' lines
     header_comment_skips = fem_mesh.count_header_comment_skips(nodedyn)
-    nodeIDcoords = n.loadtxt(opts.nodefile,
-                             delimiter=',',
-                             comments='*',
-                             skiprows=header_comment_skips,
-                             dtype=[('id', 'i4'), ('x', 'f4'), ('y', 'f4'),
-                                    ('z', 'f4')])
+    nodeIDcoords = loadtxt(opts.nodefile,
+                           delimiter=',',
+                           comments='*',
+                           skiprows=header_comment_skips,
+                           dtype=[('id', 'i4'), ('x', 'f4'), ('y', 'f4'),
+                                  ('z', 'f4')])
     [snic, axes] = fem_mesh.SortNodeIDs()
     return [snic, axes]
 
