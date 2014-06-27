@@ -51,9 +51,6 @@ def main():
     # SAVE RES_SIM.MAT
     save_res_sim_mat(args.ressim, var_dict)
 
-    if not os.path.exists(args.ressim):
-        sys.exit('ERROR: %s not successfully created' % args.ressim)
-
 
 def read_cli():
     """
@@ -101,7 +98,10 @@ def read_dt(dynadeck):
 
 def save_res_sim_mat(resname, var_dict):
     import scipy.io as sio
-    sio.savemat(resname, var_dict)
+    try:
+        sio.savemat(resname, var_dict)
+    except IOerror:
+        print('Error saving %s.' % resname)
 
 def load_sort_nodes(nodedyn):
     import numpy as n
