@@ -103,7 +103,9 @@ def extractPlane(snic, axes, plane):
 
     INPUTS:
         snic - sorted node IDs & coordinates array
+
         axes - list of unique coordinates in the x, y, and z dimensions
+
         plane - list:
             index - index of the plane to extract (x=0, y=1, z=2)
             coord - coordinate of the plane to extract (must exist in axes
