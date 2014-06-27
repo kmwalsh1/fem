@@ -37,7 +37,7 @@ def main():
 
     [snic, axes] = load_sort_nodes(args.nodedyn)
 
-    # FIND THE IMAGING PLANE
+    imagingPlane = fem_mesh.extractPlane(snic, axes, (0, 0.0))
 
     # OPEN DISP.DAT AND EXTRACT NUM NODES, DIMS AND TIMESTEPS
 
@@ -103,6 +103,7 @@ def save_res_sim_mat(resname, var_dict):
     except IOerror:
         print('Error saving %s.' % resname)
 
+
 def load_sort_nodes(nodedyn):
     from numpy import loadtxt
     import fem_mesh
@@ -116,6 +117,7 @@ def load_sort_nodes(nodedyn):
                                   ('z', 'f4')])
     [snic, axes] = fem_mesh.SortNodeIDs()
     return [snic, axes]
+
 
 if __name__ == "__main__":
     main()
