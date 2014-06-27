@@ -39,7 +39,7 @@ def main():
 
     imagingPlane = fem_mesh.extractPlane(snic, axes, (0, 0.0))
 
-    # OPEN DISP.DAT AND EXTRACT NUM NODES, DIMS AND TIMESTEPS
+    NUM = extractNumNodesDimsTimesteps(args.dispout)
 
     # EXTRACT ARFI DATA FROM DISP.DAT
 
@@ -118,6 +118,15 @@ def load_sort_nodes(nodedyn):
     [snic, axes] = fem_mesh.SortNodeIDs()
     return [snic, axes]
 
+
+def extractNumNodesDimsTimesteps(dispdat):
+    import struct
+    f = open(dispdat, 'rb')
+    NUM_NODES = struct.unpack('f', f.read(4))
+    NUM_DIMS = struct.unpack('f', f.read(4))
+    NUM_TIMESTEPS = struct.unpack('f', f.read(4))
+    NUM = {'NODES': NUM_NODES, 'DIMS': NUM_DIMS, 'TIMESTEPS': NUM_TIMESTEPS}
+    return NUM
 
 if __name__ == "__main__":
     main()
