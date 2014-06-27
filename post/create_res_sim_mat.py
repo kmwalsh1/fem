@@ -34,20 +34,22 @@ def main():
 
     args = read_cli()
 
-    mat_tmp_run = 'runmatlab.m'
-    matfile = open(mat_tmp_run, 'w')
-    matfile.write('addpath(\'%s\');\n' % args.fempath)
-    matfile.write('createsimres(\'%s\',\'%s\',\'%s\');\n' % (args.dispout,
-                                                             args.nodedyn,
-                                                             args.dynadeck))
-    matfile.close()
+    # LOAD IN AND SORT NODE IDs
 
-    os.system('matlab -nodesktop -nosplash < runmatlab.m')
+    # FIND THE IMAGING PLANE
+
+    # OPEN DISP.DAT AND EXTRACT NUM NODES, DIMS AND TIMESTEPS
+
+    # EXTRACT ARFI DATA FROM DISP.DAT
+
+    dt = read_dt(args.dynadeck)
+
+    # SETUP RES_SIM VARIABLES
+
+    # SAVE RES_SIM.MAT
 
     if not os.path.exists(args.ressim):
         sys.exit('ERROR: %s not successfully created' % args.ressim)
-
-    fem_mesh.rm_tmp_file(mat_tmp_run)
 
 
 def read_cli():
@@ -65,9 +67,6 @@ def read_cli():
     par.add_argument("--ressim",
                      help="name of the matlab output file",
                      default="res_sim.mat")
-    par.add_argument("--fempath",
-                     help="path to the FEM post-processing scripts",
-                     default="/radforce/mlp6/fem/post")
     par.add_argument("--nodedyn",
                      help="ls-dyna node definition file",
                      default="nodes.dyn")
@@ -78,6 +77,23 @@ def read_cli():
     args = par.parse_args()
 
     return args
+
+
+def read_dt(dynadeck):
+    import re
+    r = re.compile('\*DATABASE_NODOUT')
+    readNextNonCommentLine = False
+    with open(dynadeck, 'r') as d:
+        for line in d:
+            if readNextNonCommentLine is True:
+                # skip next line if it is a comment
+                if line[0] is '$'
+                    continue
+                else
+                    dt = float(line.split(',')[0])
+                    return dt
+            if r.match(line)
+                readNextNonCommentLine = True
 
 
 if __name__ == "__main__":
