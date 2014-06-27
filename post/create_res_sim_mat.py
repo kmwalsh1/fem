@@ -41,14 +41,12 @@ def main():
 
     NUM = extractNumNodesDimsTimesteps(args.dispout)
 
-    # EXTRACT ARFI DATA FROM DISP.DAT
+    arfidata = extract_binary_arfidata(args.dispout, NUM, imagingPlane)
 
     dt = read_dt(args.dynadeck)
 
-    # SETUP RES_SIM VARIABLES
-    var_dict = FILL_ME_IN
+    var_dict = create_var_dict(axes, dt, arfidata)
 
-    # SAVE RES_SIM.MAT
     save_res_sim_mat(args.ressim, var_dict)
 
 
@@ -80,6 +78,12 @@ def read_cli():
 
 
 def read_dt(dynadeck):
+    """
+    read in the time step increment (dt) from the dyna deck
+
+    using *DATABASE_NODOUT for this, and trailing comment lines
+    are accomodated
+    """
     import re
     r = re.compile('\*DATABASE_NODOUT')
     readNextNonCommentLine = False
@@ -97,14 +101,20 @@ def read_dt(dynadeck):
 
 
 def save_res_sim_mat(resname, var_dict):
+    """
+    save res_sim.mat, with error checking, etc.
+    """
     import scipy.io as sio
     try:
-        sio.savemat(resname, var_dict)
+        sio.savemat(resname, var_dict, do_compression=True, oned_as='row')
     except IOerror:
         print('Error saving %s.' % resname)
 
 
 def load_sort_nodes(nodedyn):
+    """
+    load and sort nodes
+    """
     from numpy import loadtxt
     import fem_mesh
     # load in all of the node data, excluding '*' lines
@@ -120,6 +130,10 @@ def load_sort_nodes(nodedyn):
 
 
 def extractNumNodesDimsTimesteps(dispdat):
+    """
+    extract number of nodes, spatial dimensions and timesteps from
+    disp.dat and save in NUM dictionary
+    """
     import struct
     f = open(dispdat, 'rb')
     NUM_NODES = struct.unpack('f', f.read(4))
@@ -127,6 +141,18 @@ def extractNumNodesDimsTimesteps(dispdat):
     NUM_TIMESTEPS = struct.unpack('f', f.read(4))
     NUM = {'NODES': NUM_NODES, 'DIMS': NUM_DIMS, 'TIMESTEPS': NUM_TIMESTEPS}
     return NUM
+
+
+def create_var_dict(axes, NUM, dt, arfidata):
+    """
+    create dictionary of variables to be saved to res_sim.mat
+
+    spatial axes are in mm, time in s
+    """
+    var_dict = {}
+    var_dict['axial'] = -axes[0]*10
+    var_dict['lat'] = axes[1]*10
+    var_dict['t'] = float(range(0, NUM['TIMESTEPS'], 1)) * dt
 
 if __name__ == "__main__":
     main()
