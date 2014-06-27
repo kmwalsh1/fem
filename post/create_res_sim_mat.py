@@ -104,7 +104,7 @@ def save_res_sim_mat(resname, var_dict):
         print('Error saving %s.' % resname)
 
 def load_sort_nodes(nodedyn):
-    import numpy import loadtxt
+    from numpy import loadtxt
     import fem_mesh
     # load in all of the node data, excluding '*' lines
     header_comment_skips = fem_mesh.count_header_comment_skips(nodedyn)
