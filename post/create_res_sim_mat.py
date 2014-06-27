@@ -87,12 +87,12 @@ def read_dt(dynadeck):
         for line in d:
             if readNextNonCommentLine is True:
                 # skip next line if it is a comment
-                if line[0] is '$'
+                if line[0] is '$':
                     continue
-                else
+                else:
                     dt = float(line.split(',')[0])
                     return dt
-            if r.match(line)
+            if r.match(line):
                 readNextNonCommentLine = True
 
 
