@@ -28,13 +28,14 @@ def main():
     import os
     import sys
     import fem_mesh
+    import numpy as n
 
     if sys.version < '2.7':
         sys.exit("ERROR: Requires Python >= v2.7")
 
     args = read_cli()
 
-    # LOAD IN AND SORT NODE IDs
+    [snic, axes] = load_sort_nodes(args.nodedyn)
 
     # FIND THE IMAGING PLANE
 
@@ -101,6 +102,20 @@ def read_dt(dynadeck):
 def save_res_sim_mat(resname, var_dict):
     import scipy.io as sio
     sio.savemat(resname, var_dict)
+
+def load_sort_nodes(nodedyn):
+    import numpy as n
+    import fem_mesh
+    # load in all of the node data, excluding '*' lines
+    header_comment_skips = fem_mesh.count_header_comment_skips(nodedyn)
+    nodeIDcoords = n.loadtxt(opts.nodefile,
+                             delimiter=',',
+                             comments='*',
+                             skiprows=header_comment_skips,
+                             dtype=[('id', 'i4'), ('x', 'f4'), ('y', 'f4'),
+                                    ('z', 'f4')])
+    [snic, axes] = fem_mesh.SortNodeIDs()
+    return [snic, axes]
 
 if __name__ == "__main__":
     main()
