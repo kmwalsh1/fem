@@ -25,13 +25,10 @@ __license__ = "Apache v2.0"
 
 
 def main():
-    import os
-    import sys
+    """
+    generate res_sim.mat file from disp.dat raw binary data
+    """
     import fem_mesh
-    import numpy as n
-
-    if sys.version < '2.7':
-        sys.exit("ERROR: Requires Python >= v2.7")
 
     args = read_cli()
 
@@ -54,6 +51,9 @@ def read_cli():
     """
     read in command line arguments
     """
+    import sys
+    if sys.version < '2.7':
+        sys.exit("ERROR: Requires Python >= v2.7")
 
     import argparse as ap
 
@@ -105,6 +105,7 @@ def save_res_sim_mat(resname, var_dict):
     save res_sim.mat, with error checking, etc.
     """
     import scipy.io as sio
+
     try:
         sio.savemat(resname, var_dict, do_compression=True, oned_as='row')
     except IOerror:
@@ -119,13 +120,13 @@ def load_sort_nodes(nodedyn):
     import fem_mesh
     # load in all of the node data, excluding '*' lines
     header_comment_skips = fem_mesh.count_header_comment_skips(nodedyn)
-    nodeIDcoords = loadtxt(opts.nodefile,
+    nodeIDcoords = loadtxt(nodedyn,
                            delimiter=',',
                            comments='*',
                            skiprows=header_comment_skips,
                            dtype=[('id', 'i4'), ('x', 'f4'), ('y', 'f4'),
                                   ('z', 'f4')])
-    [snic, axes] = fem_mesh.SortNodeIDs()
+    [snic, axes] = fem_mesh.SortNodeIDs(nodeIDcoords)
     return [snic, axes]
 
 
@@ -135,7 +136,10 @@ def extractNumNodesDimsTimesteps(dispdat):
     disp.dat and save in NUM dictionary
     """
     import struct
-    f = open(dispdat, 'rb')
+    try:
+        f = open(dispdat, 'rb')
+    except IOerror:
+        print('Cannot read %s' % dispdat)
     NUM_NODES = struct.unpack('f', f.read(4))
     NUM_DIMS = struct.unpack('f', f.read(4))
     NUM_TIMESTEPS = struct.unpack('f', f.read(4))
@@ -153,6 +157,54 @@ def create_var_dict(axes, NUM, dt, arfidata):
     var_dict['axial'] = -axes[0]*10
     var_dict['lat'] = axes[1]*10
     var_dict['t'] = float(range(0, NUM['TIMESTEPS'], 1)) * dt
+    var_dict['arfidata'] = arfidata
+
+    # CHECK FOR DIMENSION CONSISTENCY
+
+    return var_dict
+
+def extract_binary_arfidata(dispout, NUM, imagePlane):
+    """
+    extract arfidata from disp.dat
+
+    first 3 32-bit words are skipped (dimension header)
+
+    arfidata is permuted to match var_dict vectors that will also be saved
+    """
+    import struct
+    import numpy as n
+
+    numWordBytes = 4
+    numHeaderWords = 3
+
+    try:
+        f = open(dispout, 'rb')
+    except IOerror:
+        print('Cannot read %s' % dispout)
+
+    # skip the NUM dict entries in the header
+    f.seek(numWordBytes*numHeaderWords)
+
+    arfidata = n.zeros((imagePlane.shape, NUM['TIMESTEPS']))
+
+    for t in range(NUM['TIMESTEPS']):
+        for node in range(NUM['NODES']):
+            # expcted order is node ID, x-, y-, z-displacement
+            # nodeID will be the dict key (needs to be string)
+            nodeID = int(struct.unpack('f', f.read(numWordBytes)))
+            if nodeID in imagePlane:
+                (axialInd, latInd) = n.where(imagePlane == nodeID)
+                # skip elevation and lateral displacement components
+                f.seek(numWordBytes*2)
+                # assign the z-displacement to the correct position in the
+                # image plane
+                arfidata[latInd, axialInd, t] = struct.unpack('f',
+                                                    f.read(numWordBytes))
+            else:
+                # skip the next 3 words (x,y,z disp) and move onto next node
+                f.seek(numWordBytes*3)
+
+    return arfidata
 
 if __name__ == "__main__":
     main()
