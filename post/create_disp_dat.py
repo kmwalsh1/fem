@@ -36,15 +36,16 @@ __license__ = "Apache v2.0"
 
 
 def main():
-    import sys
-
-    # lets read in some command-line arguments
+    """
+    extract node ID, x,y,z disp from nodout and write to disp.dat
+    """
+    write_to_cli('RUNNING: create_disp_dat.py\n')
     args = parse_cli()
 
     # open dispout for binary writing
     dispout = open(args.dispout, 'wb')
 
-    generate_header(args.nodedyn, args.dynadeck)
+    header = generate_header(args.nodedyn, args.dynadeck)
 
     write_header(header, dispout)
 
@@ -52,17 +53,16 @@ def main():
     # REFACTOR: try/except or with
     if args.nodout.endswith('gz'):
         import gzip
-        print("Extracting gzip-compressed data . . .\n")
         nodout = gzip.open(args.nodout, 'r')
     else:
-        print("Extracting data . . .\n")
         nodout = open(args.nodout, 'r')
 
     timestep_count = 0
     written_count = 0
+    timestep_read = False
     
-    write_to_cli('Processing Time Step: ')    
-    
+    write_to_cli('Processing Time Step: ')
+
     for line in nodout:
         if 'nodal' in line:
             timestep_read = True
@@ -81,8 +81,11 @@ def main():
                 process_timestep_data(data, dispout)
                 written_count = written_count + 1
 
-    assert (written_count == header['numtimesteps']), 'Mismatch in number of timesteps'
+    assert (written_count == header['numtimesteps']), \
+        'Wrote %i timesteps, expected %i' % \
+        (written_count, header['numtimesteps'])
 
+    write_to_cli('\nDONE!\n')
     dispout.close()
     nodout.close()
 
@@ -92,10 +95,10 @@ def parse_cli():
     parse command-line interface arguments
     """
     import sys
-    
+
     if sys.version_info[:2] < (2, 7):
         sys.exit("ERROR: Requires Python >= 2.7")
-    
+
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate disp.dat "
@@ -104,14 +107,14 @@ def parse_cli():
                                      argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--nodout",
                         help="ASCII file containing nodout data",
-                        default="nodout.gz")
+                        default="nodout")
     parser.add_argument("--dispout", help="name of the binary displacement "
                         "output file", default="disp.dat")
-    parser.add_argument("--nodedyn", help="nodes.dyn input file", 
-                        default="nodes.dyn")    
+    parser.add_argument("--nodedyn", help="nodes.dyn input file",
+                        default="nodes.dyn")
     parser.add_argument("--dynadeck", help="dynadeck.dyn master input deck",
                         default="dynadeck.dyn")
-                        
+
     args = parser.parse_args()
 
     return args
@@ -120,10 +123,10 @@ def parse_cli():
 def generate_header(nodedyn, dynadeck):
     """
     generate headers & write to disp.dat
-    
+
     INPUTS: dispout ('disp.dat') [binary filename to write to]
             nodedyn ('nodes.dyn') [used to determine # nodes & timesteps]
-            
+
     OUTPUTS: header w/ # nodes, dims and timesteps written to disp.dat
              header (dict: numnodes, numdims, numtimesteps)
     """
@@ -140,31 +143,33 @@ def calc_timesteps(dynadeck):
     calculate # of expected time steps in nodout based on *CONTROL_TERMINATION
     and *DATABASE_NODOUT entries (first non-comment entry on line after
     keyword) in dynadeck.dyn
-    
+
     INPUT: dynadeck ('dynadeck.dyn')
-    
+
     OUTPUT: numtimesteps (int)
     """
+    import numpy as n
+    
     term_time = float(read_keyword_value('\*CONTROL_TERMINATION', 0, dynadeck))
     dt = float(read_keyword_value('\*DATABASE_NODOUT', 0, dynadeck))
-    
-    numtimesteps = int(term_time/dt)
+
+    numtimesteps = n.ceil(term_time/dt) + 1  # need the +1 for the initial state
     return numtimesteps
 
 
 def read_keyword_value(keyword, column, dynadeck):
     """
     read first entry for a keyword, skipping any comment lines if present
-    
+
     INPUTS: keyword ('\*CONTROL_TERMINATION')
                 !! make sure that * in keyword is escaped as \* !!
             column (int) [comma-delimited column to read for value, 0 = 1st col]
             dynadeck ('dynadeck.dyn')
-            
+
     OUTPUT: keyword_value
     """
     import re
-    r = re.compile(keyword)    
+    r = re.compile(keyword)
     readNextNonCommentLine = False
     with open(dynadeck, 'r') as d:
         for line in d:
@@ -177,7 +182,7 @@ def read_keyword_value(keyword, column, dynadeck):
                     return keyword_value
             if r.match(line):
                 readNextNonCommentLine = True
-    
+
 
 def count_nodes(nodefile):
     """
@@ -194,8 +199,8 @@ def count_nodes(nodefile):
                                     ('y', 'f4'), ('z', 'f4')])
     numNodes = len(nodeIDcoords)
     return numNodes
-    
-    
+
+
 def write_header(header, outfile):
     '''
     write binary header information to reformat things on read downstream
@@ -203,7 +208,7 @@ def write_header(header, outfile):
     '''
     import struct
     outfile.write(struct.pack('fff', header['numnodes'],
-                                     header['numdims'], 
+                                     header['numdims'],
                                      header['numtimesteps']))
 
 
