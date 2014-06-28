@@ -42,7 +42,7 @@ def main():
 
     dt = read_dt(args.dynadeck)
 
-    var_dict = create_var_dict(axes, dt, arfidata)
+    var_dict = create_var_dict(axes, NUM, dt, arfidata)
 
     save_res_sim_mat(args.ressim, var_dict)
 
@@ -143,7 +143,10 @@ def extractNumNodesDimsTimesteps(dispdat):
     NUM_NODES = struct.unpack('f', f.read(4))
     NUM_DIMS = struct.unpack('f', f.read(4))
     NUM_TIMESTEPS = struct.unpack('f', f.read(4))
-    NUM = {'NODES': NUM_NODES, 'DIMS': NUM_DIMS, 'TIMESTEPS': NUM_TIMESTEPS}
+    NUM = {'NODES': int(NUM_NODES[0]),
+           'DIMS': int(NUM_DIMS[0]),
+           'TIMESTEPS': int(NUM_TIMESTEPS[0])}
+    f.close()
     return NUM
 
 
@@ -153,10 +156,12 @@ def create_var_dict(axes, NUM, dt, arfidata):
 
     spatial axes are in mm, time in s
     """
+    import numpy as n
+
     var_dict = {}
-    var_dict['axial'] = -axes[0]*10
+    var_dict['axial'] = -axes[2][::-1]*10
     var_dict['lat'] = axes[1]*10
-    var_dict['t'] = float(range(0, NUM['TIMESTEPS'], 1)) * dt
+    var_dict['t'] = n.arange(0, NUM['TIMESTEPS'], 1.0) * dt
     var_dict['arfidata'] = arfidata
 
     # CHECK FOR DIMENSION CONSISTENCY
@@ -185,25 +190,28 @@ def extract_binary_arfidata(dispout, NUM, imagePlane):
     # skip the NUM dict entries in the header
     f.seek(numWordBytes*numHeaderWords)
 
-    arfidata = n.zeros(imagePlane.shape + (NUM['TIMESTEPS'],))
+    arfidata = n.zeros(imagePlane.transpose().shape + (NUM['TIMESTEPS'],))
 
     for t in range(NUM['TIMESTEPS']):
-        for node in range(NUM['NODES']):
+        for node in range(1, NUM['NODES']+1, 1):
             # expcted order is node ID, x-, y-, z-displacement
             # nodeID will be the dict key (needs to be string)
-            nodeID = int(struct.unpack('f', f.read(numWordBytes)))
-            if nodeID in imagePlane:
-                (axialInd, latInd) = n.where(imagePlane == nodeID)
+            nodeID = struct.unpack('f', f.read(numWordBytes))
+            if nodeID[0] in imagePlane:
+                (axialInd, latInd) = n.where(imagePlane == nodeID[0])
+                ##### THIS PART IS WRONG!! ######
+                ##### IT IS ALL NODE IDS, THEN ALL X-DISP, THEN ALL Y-DISP, ETC
                 # skip elevation and lateral displacement components
-                f.seek(numWordBytes*2)
+                f.seek(numWordBytes*2, 1)
                 # assign the z-displacement to the correct position in the
                 # image plane
-                arfidata[latInd, axialInd, t] = struct.unpack('f',
+                arfidata[axialInd, lateralInd, t] = struct.unpack('f',
                                                     f.read(numWordBytes))
             else:
                 # skip the next 3 words (x,y,z disp) and move onto next node
-                f.seek(numWordBytes*3)
+                f.seek(numWordBytes*3, 1)
 
+    f.close()
     return arfidata
 
 if __name__ == "__main__":
