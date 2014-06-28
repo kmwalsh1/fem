@@ -44,6 +44,8 @@ def main():
     # open dispout for binary writing
     dispout = open(args.dispout, 'wb')
 
+    generate_write_header(dispout, args.nodedyn)
+
     # open nodout file
     if args.nodout.endswith('gz'):
         import gzip
@@ -118,18 +120,28 @@ def parse_cli():
                         default="nodout.gz")
     parser.add_argument("--dispout", help="name of the binary displacement "
                         "output file", default="disp.dat")
+    parser.add_argument("--nodedyn", help="nodes.dyn input file", 
+                        default="nodes.dyn")                        
+                        
     args = parser.parse_args()
 
     return args
 
 
-def generate_header(data, outfile):
-    '''
-    generate headers from data matrix of first time step
-    '''
-    import re
+def generate_write_header(dispout, nodedyn):
+    """
+    generate headers & write to disp.dat
+    
+    INPUTS: dispout ('disp.dat') [binary filename to write to]
+            nodedyn ('nodes.dyn') [used to determine # nodes & timesteps]
+            
+    OUTPUTS: header w/ # nodes, dims and timesteps written to disp.dat
+             header (dict: numnodes, numdims, numtimesteps)
+    """
+
     header = {}
-    header['numnodes'] = len(data)
+    header['numnodes'] = count_nodes(nodedyn)
+#    header['numnodes'] = len(data)
     header['numdims'] = 4  # node ID, x-val, y-val, z-val
     ts_count = 0
     t = re.compile('time')
@@ -139,15 +151,27 @@ def generate_header(data, outfile):
     else:
         n = open(outfile.name)
 
-    with n as f:
-        for line in f:
-            if t.search(line):
-                ts_count = ts_count + 1
     header['numtimesteps'] = ts_count
 
     return header
 
 
+def count_nodes(nodefile):
+    """
+    count # nodes from nodes.dyn
+    """
+    import fem_mesh
+    header_comment_skips = fem_mesh.count_header_comment_skips(nodefile)
+    nodeIDcoords = n.loadtxt(nodefile,
+                             delimiter=',',
+                             skiprows=header_comment_skips,
+                             comments='*',
+                             dtype=[('id', 'i4'), ('x', 'f4'),
+                                    ('y', 'f4'), ('z', 'f4')])
+    numNodes = len(nodeIDcoords)
+    return numNodes
+    
+    
 def write_headers(outfile, header):
     '''
     write binary header information to reformat things on read downstream
