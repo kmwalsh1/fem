@@ -49,6 +49,7 @@ def main():
     write_header(header, dispout)
 
     # open nodout file
+    # REFACTOR: try/except or with
     if args.nodout.endswith('gz'):
         import gzip
         print("Extracting gzip-compressed data . . .\n")
@@ -57,55 +58,39 @@ def main():
         print("Extracting data . . .\n")
         nodout = open(args.nodout, 'r')
 
-    header_written = False
-    timestep_read = False
     timestep_count = 0
     written_count = 0
-    NODE_COUNT = []
+    
+    write_to_cli('Processing Time Step: ')    
+    
     for line in nodout:
         if 'nodal' in line:
             timestep_read = True
-            if timestep_count == 0:
-                sys.stdout.write('Time Step: ')
-                sys.stdout.flush()
-            sys.stdout.write('%i ' % timestep_count)
-            sys.stdout.flush()
+            write_to_cli('%i ' % timestep_count)
             timestep_count = timestep_count + 1
             data = []
-            line_count = 0
+            node_count = 0
             continue
         if timestep_read is True:
-            # THIS DOES NOT DEAL WITH THE LAST TIME STEP CORRECTLY!!  FIX THIS!!!!
-            if line.startswith('\n'):  # done reading the time step
+            raw_data = line.split()
+            corrected_raw_data = correct_Enot(raw_data)
+            data.append(map(float, corrected_raw_data))
+            node_count = node_count + 1
+            if node_count == header['numnodes']:
                 timestep_read = False
-                # if this was the first time, everything needed to be read to
-                # get node count for header
-                if not header_written:
-                    header = generate_header(data, nodout)
-                    NODE_COUNT = header['numnodes']
-                    print(NODE_COUNT)
-                    write_headers(dispout, header)
-                    header_written = True
                 process_timestep_data(data, dispout)
                 written_count = written_count + 1
-                print('WRITTEN!')
-            else:
-                raw_data = line.split()
-                corrected_raw_data = correct_Enot(raw_data)
-                data.append(map(float, corrected_raw_data))
-                line_count = line_count + 1
 
     assert (written_count == header['numtimesteps']), 'Mismatch in number of timesteps'
 
-    # close all open files
     dispout.close()
     nodout.close()
 
 
 def parse_cli():
-    '''
+    """
     parse command-line interface arguments
-    '''
+    """
     import sys
     
     if sys.version_info[:2] < (2, 7):
@@ -142,7 +127,6 @@ def generate_header(nodedyn, dynadeck):
     OUTPUTS: header w/ # nodes, dims and timesteps written to disp.dat
              header (dict: numnodes, numdims, numtimesteps)
     """
-
     header = {}
     header['numnodes'] = count_nodes(nodedyn)
     header['numdims'] = 4  # node ID, x-val, y-val, z-val
@@ -166,6 +150,7 @@ def calc_timesteps(dynadeck):
     
     numtimesteps = int(term_time/dt)
     return numtimesteps
+
 
 def read_keyword_value(keyword, column, dynadeck):
     """
@@ -199,6 +184,7 @@ def count_nodes(nodefile):
     count # nodes from nodes.dyn
     """
     import fem_mesh
+    import numpy as n
     header_comment_skips = fem_mesh.count_header_comment_skips(nodefile)
     nodeIDcoords = n.loadtxt(nodefile,
                              delimiter=',',
@@ -217,7 +203,8 @@ def write_header(header, outfile):
     '''
     import struct
     outfile.write(struct.pack('fff', header['numnodes'],
-                              header['numdims'], header['numtimesteps']))
+                                     header['numdims'], 
+                                     header['numtimesteps']))
 
 
 def process_timestep_data(data, outfile):
@@ -241,6 +228,13 @@ def correct_Enot(raw_data):
         raw_data[i] = re.sub(r'(?<!E)\-[1-9][0-9][0-9]', 'E-100', raw_data[i])
     return raw_data
 
+def write_to_cli(s):
+    """
+    write string (s) to CLI
+    """
+    import sys
+    sys.stdout.write(s)
+    sys.stdout.flush()
 
 if __name__ == "__main__":
     main()
