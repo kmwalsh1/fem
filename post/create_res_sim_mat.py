@@ -185,7 +185,7 @@ def extract_binary_arfidata(dispout, NUM, imagePlane):
     # skip the NUM dict entries in the header
     f.seek(numWordBytes*numHeaderWords)
 
-    arfidata = n.zeros((imagePlane.shape, NUM['TIMESTEPS']))
+    arfidata = n.zeros(imagePlane.shape + (NUM['TIMESTEPS'],))
 
     for t in range(NUM['TIMESTEPS']):
         for node in range(NUM['NODES']):
