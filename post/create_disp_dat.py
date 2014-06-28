@@ -44,7 +44,9 @@ def main():
     # open dispout for binary writing
     dispout = open(args.dispout, 'wb')
 
-    generate_write_header(dispout, args.nodedyn)
+    generate_header(args.nodedyn, args.dynadeck)
+
+    write_header(header, dispout)
 
     # open nodout file
     if args.nodout.endswith('gz'):
@@ -121,14 +123,16 @@ def parse_cli():
     parser.add_argument("--dispout", help="name of the binary displacement "
                         "output file", default="disp.dat")
     parser.add_argument("--nodedyn", help="nodes.dyn input file", 
-                        default="nodes.dyn")                        
+                        default="nodes.dyn")    
+    parser.add_argument("--dynadeck", help="dynadeck.dyn master input deck",
+                        default="dynadeck.dyn")
                         
     args = parser.parse_args()
 
     return args
 
 
-def generate_write_header(dispout, nodedyn):
+def generate_header(nodedyn, dynadeck):
     """
     generate headers & write to disp.dat
     
@@ -141,20 +145,54 @@ def generate_write_header(dispout, nodedyn):
 
     header = {}
     header['numnodes'] = count_nodes(nodedyn)
-#    header['numnodes'] = len(data)
     header['numdims'] = 4  # node ID, x-val, y-val, z-val
-    ts_count = 0
-    t = re.compile('time')
-    if outfile.name.endswith('gz'):
-        import gzip
-        n = gzip.open(outfile.name)
-    else:
-        n = open(outfile.name)
-
-    header['numtimesteps'] = ts_count
+    header['numtimesteps'] = calc_timesteps(dynadeck)
 
     return header
 
+
+def calc_timesteps(dynadeck):
+    """
+    calculate # of expected time steps in nodout based on *CONTROL_TERMINATION
+    and *DATABASE_NODOUT entries (first non-comment entry on line after
+    keyword) in dynadeck.dyn
+    
+    INPUT: dynadeck ('dynadeck.dyn')
+    
+    OUTPUT: numtimesteps (int)
+    """
+    term_time = float(read_keyword_value('\*CONTROL_TERMINATION', 0, dynadeck))
+    dt = float(read_keyword_value('\*DATABASE_NODOUT', 0, dynadeck))
+    
+    numtimesteps = int(term_time/dt)
+    return numtimesteps
+
+def read_keyword_value(keyword, column, dynadeck):
+    """
+    read first entry for a keyword, skipping any comment lines if present
+    
+    INPUTS: keyword ('\*CONTROL_TERMINATION')
+                !! make sure that * in keyword is escaped as \* !!
+            column (int) [comma-delimited column to read for value, 0 = 1st col]
+            dynadeck ('dynadeck.dyn')
+            
+    OUTPUT: keyword_value
+    """
+    import re
+    r = re.compile(keyword)    
+    readNextNonCommentLine = False
+    with open(dynadeck, 'r') as d:
+        for line in d:
+            if readNextNonCommentLine is True:
+                # skip next line if it is a comment
+                if line[0] is '$':
+                    continue
+                else:
+                    keyword_value = float(line.split(',')[column])
+                    return keyword_value
+            if r.match(line):
+                readNextNonCommentLine = True
+    
 
 def count_nodes(nodefile):
     """
@@ -172,7 +210,7 @@ def count_nodes(nodefile):
     return numNodes
     
     
-def write_headers(outfile, header):
+def write_header(header, outfile):
     '''
     write binary header information to reformat things on read downstream
     'header' is a dictionary containing the necessary information
