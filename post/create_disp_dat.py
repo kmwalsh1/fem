@@ -38,9 +38,6 @@ __license__ = "Apache v2.0"
 def main():
     import sys
 
-    if sys.version_info[:2] < (2, 7):
-        sys.exit("ERROR: Requires Python >= 2.7")
-
     # lets read in some command-line arguments
     args = parse_cli()
 
@@ -59,31 +56,42 @@ def main():
     header_written = False
     timestep_read = False
     timestep_count = 0
+    written_count = 0
+    NODE_COUNT = []
     for line in nodout:
         if 'nodal' in line:
             timestep_read = True
-            timestep_count = timestep_count + 1
-            if timestep_count == 1:
+            if timestep_count == 0:
                 sys.stdout.write('Time Step: ')
                 sys.stdout.flush()
             sys.stdout.write('%i ' % timestep_count)
             sys.stdout.flush()
+            timestep_count = timestep_count + 1
             data = []
+            line_count = 0
             continue
         if timestep_read is True:
+            # THIS DOES NOT DEAL WITH THE LAST TIME STEP CORRECTLY!!  FIX THIS!!!!
             if line.startswith('\n'):  # done reading the time step
                 timestep_read = False
                 # if this was the first time, everything needed to be read to
                 # get node count for header
                 if not header_written:
                     header = generate_header(data, nodout)
+                    NODE_COUNT = header['numnodes']
+                    print(NODE_COUNT)
                     write_headers(dispout, header)
                     header_written = True
                 process_timestep_data(data, dispout)
+                written_count = written_count + 1
+                print('WRITTEN!')
             else:
                 raw_data = line.split()
                 corrected_raw_data = correct_Enot(raw_data)
                 data.append(map(float, corrected_raw_data))
+                line_count = line_count + 1
+
+    assert (written_count == header['numtimesteps']), 'Mismatch in number of timesteps'
 
     # close all open files
     dispout.close()
@@ -94,6 +102,11 @@ def parse_cli():
     '''
     parse command-line interface arguments
     '''
+    import sys
+    
+    if sys.version_info[:2] < (2, 7):
+        sys.exit("ERROR: Requires Python >= 2.7")
+    
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate disp.dat "
@@ -116,7 +129,7 @@ def generate_header(data, outfile):
     '''
     import re
     header = {}
-    header['numnodes'] = data.__len__()
+    header['numnodes'] = len(data)
     header['numdims'] = 4  # node ID, x-val, y-val, z-val
     ts_count = 0
     t = re.compile('time')
@@ -130,8 +143,7 @@ def generate_header(data, outfile):
         for line in f:
             if t.search(line):
                 ts_count = ts_count + 1
-    # the re.search detects 1 extra line, so subtract 1
-    header['numtimesteps'] = ts_count - 1
+    header['numtimesteps'] = ts_count
 
     return header
 

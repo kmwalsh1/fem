@@ -188,28 +188,37 @@ def extract_binary_arfidata(dispout, NUM, imagePlane):
         print('Cannot read %s' % dispout)
 
     # skip the NUM dict entries in the header
-    f.seek(numWordBytes*numHeaderWords)
+    f.seek(numHeaderWords * numWordBytes)
 
-    arfidata = n.zeros(imagePlane.transpose().shape + (NUM['TIMESTEPS'],))
+    imagePlane = imagePlane.transpose()
+    arfidata = n.zeros(imagePlane.shape + (NUM['TIMESTEPS'],))
 
-    for t in range(NUM['TIMESTEPS']):
-        for node in range(1, NUM['NODES']+1, 1):
-            # expcted order is node ID, x-, y-, z-displacement
-            # nodeID will be the dict key (needs to be string)
-            nodeID = struct.unpack('f', f.read(numWordBytes))
-            if nodeID[0] in imagePlane:
-                (axialInd, latInd) = n.where(imagePlane == nodeID[0])
-                ##### THIS PART IS WRONG!! ######
-                ##### IT IS ALL NODE IDS, THEN ALL X-DISP, THEN ALL Y-DISP, ETC
-                # skip elevation and lateral displacement components
-                f.seek(numWordBytes*2, 1)
-                # assign the z-displacement to the correct position in the
-                # image plane
-                arfidata[axialInd, lateralInd, t] = struct.unpack('f',
-                                                    f.read(numWordBytes))
+    imagePlaneShape = imagePlane.shape
+    imagePlaneNodes = n.array([ [imagePlane[x, y][0] for y in range(imagePlaneShape[1])] for x in range(imagePlaneShape[0])])
+    
+    # "hits" are nodes that are in the imaging plane
+    hit_count = 0
+    for node in range(1, NUM['NODES']+1, 1):
+        # expcted order is node ID, x-, y-, z-displacement
+        # nodeID will be the dict key (needs to be string)
+        nodeID = struct.unpack('f', f.read(numWordBytes))
+        if any([ nodeID[0] in x for x in imagePlaneNodes ]):
+            hit_count = hit_count + 1
+            print('Hit Count: %i' % hit_count)
+            hit_position = f.tell()
+            (axialInd, latInd) = n.where(imagePlaneNodes == nodeID[0])
+            for t in range(NUM['TIMESTEPS']):
+                print('Timestep: %i' % t)
+                # jump to the z-displacement component (that is the factor of 3)
+                f.seek(hit_position + numWordBytes * (3*NUM['NODES'] + (t * 4 * NUM['NODES'])), 0)
+                arfidata[axialInd, latInd, t] = struct.unpack('f', f.read(numWordBytes))
+            if hit_count == imagePlane.size:
+                break
             else:
-                # skip the next 3 words (x,y,z disp) and move onto next node
-                f.seek(numWordBytes*3, 1)
+                f.seek(hit_position, 0)
+
+            
+    assert (hit_count == imagePlane.size), 'Not all of the image plane nodes were extracted'
 
     f.close()
     return arfidata
