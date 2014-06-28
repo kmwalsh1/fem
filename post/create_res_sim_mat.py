@@ -81,23 +81,13 @@ def read_dt(dynadeck):
     """
     read in the time step increment (dt) from the dyna deck
 
-    using *DATABASE_NODOUT for this, and trailing comment lines
-    are accomodated
+    INPUT: dynadeck ('dynadeck.dyn')
+    
+    OUTPUT: dt (float)
     """
-    import re
-    r = re.compile('\*DATABASE_NODOUT')
-    readNextNonCommentLine = False
-    with open(dynadeck, 'r') as d:
-        for line in d:
-            if readNextNonCommentLine is True:
-                # skip next line if it is a comment
-                if line[0] is '$':
-                    continue
-                else:
-                    dt = float(line.split(',')[0])
-                    return dt
-            if r.match(line):
-                readNextNonCommentLine = True
+    import create_disp_dat as cdd
+    dt = cdd.read_keyword_value('\*DATABASE_NODOUT', 0, dynadeck)    
+    return dt
 
 
 def save_res_sim_mat(resname, var_dict):
