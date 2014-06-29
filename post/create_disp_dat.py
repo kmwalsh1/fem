@@ -60,8 +60,9 @@ def main():
     timestep_count = 0
     written_count = 0
     timestep_read = False
-    
-    write_to_cli('Processing Time Step: ')
+
+    write_to_cli('Total Timesteps: %i\n' % header['numtimesteps'])    
+    write_to_cli('Processing Timestep: ')
 
     for line in nodout:
         if 'nodal' in line:
