@@ -82,11 +82,11 @@ def read_dt(dynadeck):
     read in the time step increment (dt) from the dyna deck
 
     INPUT: dynadeck ('dynadeck.dyn')
-    
+
     OUTPUT: dt (float)
     """
     import create_disp_dat as cdd
-    dt = cdd.read_keyword_value('\*DATABASE_NODOUT', 0, dynadeck)    
+    dt = cdd.read_keyword_value('\*DATABASE_NODOUT', 0, dynadeck)
     return dt
 
 
@@ -172,46 +172,67 @@ def extract_binary_arfidata(dispout, NUM, imagePlane):
     numWordBytes = 4
     numHeaderWords = 3
 
-    try:
-        f = open(dispout, 'rb')
-    except IOerror:
-        print('Cannot read %s' % dispout)
-
-    # skip the NUM dict entries in the header
-    f.seek(numHeaderWords * numWordBytes)
-
     imagePlane = imagePlane.transpose()
     arfidata = n.zeros(imagePlane.shape + (NUM['TIMESTEPS'],))
 
     imagePlaneShape = imagePlane.shape
-    imagePlaneNodes = n.array([ [imagePlane[x, y][0] for y in range(imagePlaneShape[1])] for x in range(imagePlaneShape[0])])
+    imagePlaneNodes = n.array([ [imagePlane[x, y][0]
+                      for y in range(imagePlaneShape[1])]
+                      for x in range(imagePlaneShape[0])])
+
+    with open(dispout, 'rb') as f:
+        # check to make sure disp.dat expected size, and output max byte index
+        # for downstream error checking
+        max_f_bytes = check_dispout_size(f, NUM, numWordBytes, numHeaderWords)
+        # skip the NUM dict entries in the header
+        f.seek(numHeaderWords * numWordBytes)
     
-    # "hits" are nodes that are in the imaging plane
-    hit_count = 0
-    for node in range(1, NUM['NODES']+1, 1):
-        # expcted order is node ID, x-, y-, z-displacement
-        # nodeID will be the dict key (needs to be string)
-        nodeID = struct.unpack('f', f.read(numWordBytes))
-        if any([ nodeID[0] in x for x in imagePlaneNodes ]):
-            hit_count = hit_count + 1
-            print('Hit Count: %i' % hit_count)
-            hit_position = f.tell()
-            (axialInd, latInd) = n.where(imagePlaneNodes == nodeID[0])
-            for t in range(NUM['TIMESTEPS']):
-                print('Timestep: %i' % t)
-                # jump to the z-displacement component (that is the factor of 3)
-                f.seek(hit_position + numWordBytes * (3*NUM['NODES'] + (t * 4 * NUM['NODES'])), 0)
-                arfidata[axialInd, latInd, t] = struct.unpack('f', f.read(numWordBytes))
-            if hit_count == imagePlane.size:
-                break
-            else:
-                f.seek(hit_position, 0)
+        # "hits" are nodes that are in the imaging plane
+        hit_count = 0
+        for node in range(1, NUM['NODES']+1, 1):
+            # expcted order is node ID, x-, y-, z-displacement
+            # nodeID will be the dict key (needs to be string)
+            nodeID = struct.unpack('f', f.read(numWordBytes))
+            if any([ nodeID[0] in x for x in imagePlaneNodes ]):
+                hit_count = hit_count + 1
+                hit_position = f.tell()
+                (axialInd, latInd) = n.where(imagePlaneNodes == nodeID[0])
+                for t in range(NUM['TIMESTEPS']):
+                    # jump to the z-displacement component (that is the factor of 3)          
+                    new_position = hit_position + numWordBytes * (3*NUM['NODES'] + (t * 4 * NUM['NODES']))
+                    assert new_position <= (max_f_bytes-numWordBytes), \
+                           'Attempting to jump to a index outside of the binary file byte range fom hit position %i to %i [max = %i]' % (hit_position, new_position, max_f_bytes)
+                    f.seek(new_position, 0)
+                    zdisp = f.read(numWordBytes)
+                    try:
+                        arfidata[axialInd, latInd, t] = struct.unpack('f', zdisp)
+                    except:
+                        print('zdisp not expected length (%i instead of 4 words)' % len(zdisp))
+                        print('located at word %i in %s' % (f.tell(), dispout))
+                if hit_count == imagePlane.size:
+                    break
+                else:
+                    f.seek(hit_position, 0)
+    
+        assert (hit_count == imagePlane.size), 'Not all of the image plane nodes were extracted'
+    
+        return arfidata
 
-            
-    assert (hit_count == imagePlane.size), 'Not all of the image plane nodes were extracted'
-
-    f.close()
-    return arfidata
+def check_dispout_size(f, NUM, numWordBytes, numHeaderWords):
+    """
+    check # of bytes in disp.dat relative to expected # based on NUM dict
+    
+    function will exit resetting the position of f file object
+    
+    OUTPUT: max_index (int) [max byte index of f]
+    """
+    f.seek(0, 2)
+    total_f_bytes = f.tell()
+    f.seek(0, 0)
+    expected_bytes = numWordBytes * (numHeaderWords + (NUM['DIMS'] * NUM['NODES'] * NUM['TIMESTEPS']))
+    assert total_f_bytes == expected_bytes, \
+           'binary result file does not contain expected # bytes\nExpected: %i, Actual: %i' % (expected_bytes, total_f_bytes)
+    return total_f_bytes
 
 if __name__ == "__main__":
     main()
