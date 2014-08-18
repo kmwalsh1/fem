@@ -1,3 +1,6 @@
 [submodule "probes"]
 	path = probes
 	url = git@github.com:Duke-Ultrasound/probes.git
+[submodule "matlab-json"]
+	path = matlab-json
+	url = git@github.com:christianpanton/matlab-json.git
