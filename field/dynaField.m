@@ -43,7 +43,8 @@ set_field('c', FIELD_PARAMS.soundSpeed);
 set_field('fs', FIELD_PARAMS.samplingFrequency);
 
 % define transducer-dependent parameters
-eval(sprintf('[Th,impulseResponse] = %s(FIELD_PARAMS);', FIELD_PARAMS.Transducer));
+% eval(sprintf('[Th,impulseResponse] = %s(FIELD_PARAMS);', FIELD_PARAMS.Transducer));
+[Th, impulseResponse] = jsonToProbe(FIELD_PARAMS.Transducer);
 
 % define the impulse response
 xdc_impulse(Th, impulseResponse);
