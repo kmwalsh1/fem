@@ -28,6 +28,8 @@ end
 probe.impulse_response.time = cell2mat(probe.impulse_response.time);
 probe.impulse_response.voltage = cell2mat(probe.impulse_response.voltage);
 
+FIELD_PARAMS.probeStruct = probe;
+
 % Getting transducer handle and impulse response
 fprintf('%s\n', probe.commands.Th)
 eval(probe.commands.Th) % define Th
