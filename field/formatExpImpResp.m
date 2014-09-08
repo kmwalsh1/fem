@@ -16,17 +16,17 @@ function [impulseResponse]=formatExpImpResp(FIELD_PARAMS)
 SampFreq = FIELD_PARAMS.samplingFrequency;
 
 % read in the raw data from the oscilloscope
-if(~exist('FIELD_PARAMS.probeStruct.impulse_response.time', 'var'))
+if(~isfield(FIELD_PARAMS.probeStruct.impulse_response, 'time'))
     error(sprintf('The experimentally measured impulse response doesn''t exist in %s.json.\n',FIELD_PARAMS.Transducer));
 end;
 
 TimePulse = FIELD_PARAMS.probeStruct.impulse_response.time;
 % normalize the pulse data
 Pulse = FIELD_PARAMS.probeStruct.impulse_response.voltage...
-        ./FIELD_PARAMS.probeStruct.impulse_response.voltage;
+        ./max(FIELD_PARAMS.probeStruct.impulse_response.voltage);
 % center the time axis around the max intensity
 [MaxPulse,MaxPulseIndex]=max(Pulse);
-TimePulse = TimePulse - TimePulse(MaxPulseIndex);
+TimePulse = TimePulse - TimePulse(MaxPulseIndex)
 
 % re-sample the data to match the Field II sampling frequency
 NewTime = min(TimePulse):1/SampFreq:max(TimePulse);

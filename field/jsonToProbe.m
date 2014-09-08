@@ -29,15 +29,11 @@ probe.impulse_response.time = cell2mat(probe.impulse_response.time);
 probe.impulse_response.voltage = cell2mat(probe.impulse_response.voltage);
 
 FIELD_PARAMS.probeStruct = probe;
-
-% Getting transducer handle and impulse response
+% transducer handle and impulse response
 fprintf('%s\n', probe.commands.Th)
 eval(probe.commands.Th) % define Th
 fprintf('%s\n', probe.commands.impulseResponse)
 eval(probe.commands.impulseResponse) % define impulseResponse
-
-% need to change formatExpImpResp to take in json formatted time and
-% voltage data for the impulse response, rather than the .pul file
 end
 
 
