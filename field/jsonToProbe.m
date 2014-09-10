@@ -1,8 +1,10 @@
-function [Th, impulseResponse] = jsonToProbe(FIELD_PARAMS);
+function varargout = jsonToProbe(FIELD_PARAMS);
 %function [Th, impulseResponse] = jsonToProbe(FIELD_PARAMS);
 %
 % Create 'Th' transducer handle and define the impulse response and 
 % fractional bandwidth for the given probe for use by dynaField.m;
+% impulseResponse will be a structure containing the fractional bandwidth
+% and center frequency for acunav probes.
 
 % should change to local fem path, but would need to compile mex file
 % before tojson and fromjson functions can be used...
@@ -25,15 +27,28 @@ end
 
 % the function fromjson converts json arrays into matlab cell arrays, so
 % here we convert them into a numeric array.
-probe.impulse_response.time = cell2mat(probe.impulse_response.time);
-probe.impulse_response.voltage = cell2mat(probe.impulse_response.voltage);
+if (isfield(probe.impulse_response, 'time') && isfield(probe.impulse_response, 'voltage'))
+    probe.impulse_response.time = cell2mat(probe.impulse_response.time);
+    probe.impulse_response.voltage = cell2mat(probe.impulse_response.voltage);
+end
 
 FIELD_PARAMS.probeStruct = probe;
 % transducer handle and impulse response
 fprintf('%s\n', probe.commands.Th)
 eval(probe.commands.Th) % define Th
-fprintf('%s\n', probe.commands.impulseResponse)
-eval(probe.commands.impulseResponse) % define impulseResponse
+if (isfield(probe.commands, 'impulseResponse'))
+    fprintf('%s\n', probe.commands.impulseResponse)
+    eval(probe.commands.impulseResponse) % define impulseResponse
+    varargout = cell(1, 2);
+    varargout{1} = Th;
+    varargout{2} = impulseResponse;
+else
+    varargout = cell(1, 3);
+    varargout{1} = Th;
+    varargout{2} = fractionalBandwidth;
+    varargout{3} = centerFrequency;
+end
+
 end
 
 
