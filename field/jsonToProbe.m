@@ -32,17 +32,28 @@ if (isfield(probe.impulse_response, 'time') && isfield(probe.impulse_response, '
     probe.impulse_response.voltage = cell2mat(probe.impulse_response.voltage);
 end
 
+%% run extra MATLAB commands
+commands = fieldnames(FIELD_PARAMS.commands);
+for command=commands'
+    if ~strcmp(command, 'impulseResponse') && ~strcmp(command, 'Th')
+        eval(fprintf('probe.commands.%s', command))
+    end
+end
 FIELD_PARAMS.probeStruct = probe;
 % transducer handle and impulse response
 fprintf('%s\n', probe.commands.Th)
 eval(probe.commands.Th) % define Th
+
+%% setting return arguments
 if (isfield(probe.commands, 'impulseResponse'))
+    % return Th, impulseResponse
     fprintf('%s\n', probe.commands.impulseResponse)
     eval(probe.commands.impulseResponse) % define impulseResponse
     varargout = cell(1, 2);
     varargout{1} = Th;
     varargout{2} = impulseResponse;
 else
+    % Th, fractionalBandwidth, centerFrequency
     varargout = cell(1, 3);
     varargout{1} = Th;
     varargout{2} = fractionalBandwidth;
@@ -53,6 +64,10 @@ end
 
 
 function [probe] = jsonToString(probe_file)
+%% jsonToString
+%  returns the contents of the json file probe_file as a string. fromjson
+%  can then be called on the returned string to convert it into a MATLAB
+%  structure
 eval(sprintf('fid = fopen(''/luscinia/nl91/matlab/probes/json/%s'');',...
      probe_file));
     
