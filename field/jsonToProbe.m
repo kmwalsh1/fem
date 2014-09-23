@@ -38,9 +38,11 @@ end
 commands = fieldnames(probe.commands);
 for i=1:length(commands)
     if ~strcmp(commands{i}, 'impulseResponse') && ~strcmp(commands{i}, 'Th')
-        eval(sprintf('probe.commands.%s', commands{i}))
+        command = eval(sprintf('probe.commands.%s', commands{i}));
+        eval(command);
     end
 end
+no_elements_y
 FIELD_PARAMS.probeStruct = probe;
 % transducer handle and impulse response
 fprintf('%s\n', probe.commands.Th)
