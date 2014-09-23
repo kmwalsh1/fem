@@ -31,11 +31,11 @@ Installation
    you do not have access to that repository, then you can use
    ```field/linear.m``` and ```field/curvilinear.m``` as starting points to
    define transducers.
- * In order to use the probes directory, you need to be able to parse the JSON 
-   files using the ```matlab-json``` submodule. Run ```make.m``` in the ```matlab-json```
-   files to get the ```tojson``` and ```fromjson``` functions, and add them to your 
-   working directory. In order to run ```make.m``` successfully, you need to get the ```json-c```
-   library from here: https://github.com/json-c/json-c 
+ * In order to use the JSON files in the ```probes``` submodule, you need to be
+    able to parse the JSON files using the ```matlab-json``` submodule. Run ```make.m```
+   in the ```matlab-json``` files to get the ```tojson``` and ```fromjson``` functions, 
+   and add them to your working directory. In order to run ```make.m``` successfully, 
+   you need to get the ```json-c``` library from here: https://github.com/json-c/json-c 
 
    If ```make.m``` gives an error, try changing the flag in the mex commands from
    ```-ljson-c``` to ```-ljson```.

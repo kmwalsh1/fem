@@ -33,10 +33,10 @@ if (isfield(probe.impulse_response, 'time') && isfield(probe.impulse_response, '
 end
 
 %% run extra MATLAB commands
-commands = fieldnames(FIELD_PARAMS.commands);
-for command=commands'
-    if ~strcmp(command, 'impulseResponse') && ~strcmp(command, 'Th')
-        eval(fprintf('probe.commands.%s', command))
+commands = fieldnames(probe.commands);
+for i=1:length(commands)
+    if ~strcmp(commands{i}, 'impulseResponse') && ~strcmp(commands{i}, 'Th')
+        eval(sprintf('probe.commands.%s', commands{i}))
     end
 end
 FIELD_PARAMS.probeStruct = probe;
