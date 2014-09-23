@@ -18,8 +18,10 @@ for var=fieldnames(probe)'
 end
 
 % define number of elements
-no_elements = (FIELD_PARAMS.focus(3)/FIELD_PARAMS.Fnum)/pitch;
-no_elements = floor(no_elements);
+if (exist('pitch', 'var'))
+    no_elements = (FIELD_PARAMS.focus(3)/FIELD_PARAMS.Fnum)/pitch;
+    no_elements = floor(no_elements);
+end
 
 if (exist('probe.no_elements', 'var') && no_elements > probe.no_elements)
     no_elements = probe.no_elements;
