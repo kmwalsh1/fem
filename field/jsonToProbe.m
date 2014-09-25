@@ -42,7 +42,7 @@ for i=1:length(commands)
         eval(command);
     end
 end
-no_elements_y
+
 FIELD_PARAMS.probeStruct = probe;
 % transducer handle and impulse response
 fprintf('%s\n', probe.commands.Th)
