@@ -24,7 +24,7 @@ end;
 
 in = load(InputName);
 InputIntensity = in.intensity;
-mpn = in.FIELD_PARAMS.measurementPointsandNodes;
+mpn = in.FIELD_PARAMS.mpn;
 
 axis = axis + 1; % first index is node ID, then x, y, z (2-4)
 SearchDims = setdiff([2:4],axis);
