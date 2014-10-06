@@ -59,13 +59,14 @@ set_field('c', FIELD_PARAMS.soundSpeed);
 set_field('fs', FIELD_PARAMS.samplingFrequency);
 
 % define transducer-dependent parameters
-eval(sprintf('[Th,impulseResponse] = %s(FIELD_PARAMS);', FIELD_PARAMS.Transducer));
+eval(sprintf('[Th,impulseResponse] = %s(FIELD_PARAMS);', ...
+     FIELD_PARAMS.Transducer));
 
 % check specs of the defined transducer
 FIELD_PARAMS.Th_data = xdc_get(Th, 'rect');
 
-% figure out the axial shift (m) that will need to be applied to the scatterers
-% to accomodate the mathematical element shift due to the lens
+% figure out the axial shift (m) that will need to be applied to the
+% scatterers to accomodate the mathematical element shift due to the lens
 FIELD_PARAMS.lens_correction_m = correct_axial_lens(FIELD_PARAMS.Th_data);
 
 % define the impulse response
@@ -113,7 +114,7 @@ disp(sprintf('Run Time = %.3f m\n', ActualRunTime));
 field_end;
 
 % save intensity file
-save(sprintf('dyna-I-f%.2f-F%.1f-FD%.3f-a%.2f.mat intensity FIELD_PARAMS', ...
-    Frequency, Fnum, focus(3), alpha));
+save(sprintf('dyna-I-f%.2f-F%.1f-FD%.3f-a%.2f.mat', Frequency, Fnum, ...
+             focus(3), alpha), 'intensity', 'FIELD_PARAMS');
 
 disp('The next step is to run genPointLoads.');
