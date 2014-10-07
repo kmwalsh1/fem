@@ -115,6 +115,15 @@ fprintf(foutload,'$ Normalization Isppa = %.1f W/cm^2\n',IsppaNorm);
 % convert alpha -> Np/cm
 AlphaNp = FIELD_PARAMS.alpha*FIELD_PARAMS.Frequency/8.616;
 
+% deterine if the mesh node spacing is uniform
+isUniform = checkUniform(mpn(:,2:4));
+
+if isUniform,
+    % CALCULATE ELEMENT VOLUME HERE!
+else,
+    % GENERATE ELEMENT VOLUME FILE
+end
+
 % solve for point loads
 MaxLoad = 0;
 MaxBodyForce = 0;
